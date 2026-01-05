@@ -1,0 +1,123 @@
+/* UserFormPage 响应式样式 */
+
+/* 平板设备 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .user-form-container {
+    padding: 15px;
+  }
+
+  .user-form-header h1 {
+    font-size: 28px;
+  }
+
+  .user-form-header p {
+    font-size: 14px;
+  }
+
+  .user-form {
+    padding: 25px;
+  }
+
+  .user-product-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+  }
+}
+
+/* 手机设备 (小于768px) */
+@media (max-width: 768px) {
+  .user-form-container {
+    padding: 10px;
+  }
+
+  .user-form-header {
+    margin-bottom: 30px;
+  }
+
+  .user-form-header h1 {
+    font-size: 24px;
+  }
+
+  .user-form-header p {
+    font-size: 13px;
+  }
+
+  .user-form-container {
+    padding: 10px;
+  }
+
+  .user-form {
+    padding: 20px;
+    border-radius: 6px;
+  }
+
+  .user-form-group {
+    margin-bottom: 15px;
+  }
+
+  .user-label {
+    fontSize: '14px',
+  }
+
+  .user-input,
+  .user-select {
+    padding: 12px;
+    fontSize: '16px',
+  }
+
+  .user-button-group {
+    flexDirection: 'column',
+    gap: '10px',
+  }
+
+  .user-button {
+    width: '100%',
+    padding: '14px 24px',
+  }
+
+  .user-result-container {
+    padding: 20px;
+    border-radius: 6px;
+  }
+
+  .user-result-title {
+    fontSize: '18px',
+    marginBottom: '15px',
+  }
+
+  .user-product-list {
+    gridTemplateColumns: '1fr',
+    gap: '12px',
+  }
+
+  .user-product-card {
+    padding: '12px',
+  }
+
+  .user-product-name {
+    fontSize: '15px',
+  }
+
+  .user-product-info {
+    fontSize: '13px',
+  }
+}
+
+/* 小屏手机 (小于480px) */
+@media (max-width: 480px) {
+  .user-form-header h1 {
+    font-size: 20px;
+  }
+
+  .user-form-header p {
+    font-size: 12px;
+  }
+
+  .user-form {
+    padding: 15px;
+  }
+
+  .user-result-container {
+    padding: 15px;
+  }
+}

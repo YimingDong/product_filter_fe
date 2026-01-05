@@ -1,0 +1,202 @@
+/* 全局响应式样式 */
+
+/* 桌面端 (大于1024px) */
+@media (min-width: 1025px) {
+  .app-container {
+    max-width: 1400px;
+  }
+}
+
+/* 平板设备 (768px - 1024px) */
+@media (max-width: 1024px) {
+  .nav-container {
+    padding: 0 15px;
+  }
+  
+  .nav-title {
+    font-size: 18px;
+  }
+  
+  .main-content {
+    padding: 15px 0;
+  }
+  
+  .footer-text {
+    font-size: 13px;
+  }
+}
+
+/* 手机设备 (小于768px) */
+@media (max-width: 768px) {
+  .nav-container {
+    height: 56px;
+    padding: 0 10px;
+  }
+  
+  .nav-title {
+    font-size: 16px;
+  }
+  
+  .nav-links {
+    display: none !important;
+  }
+  
+  .mobile-menu-button {
+    display: flex !important;
+  }
+  
+  .mobile-menu {
+    display: block !important;
+  }
+  
+  .main-content {
+    padding: 10px 0;
+  }
+  
+  .footer {
+    padding: 15px;
+  }
+  
+  .footer-text {
+    font-size: 12px;
+  }
+}
+
+/* 小屏手机 (小于480px) */
+@media (max-width: 480px) {
+  .nav-title {
+    font-size: 14px;
+  }
+  
+  .footer-text {
+    font-size: 11px;
+  }
+}
+
+/* 导航链接悬停效果 */
+.nav-link:hover {
+  color: #1890ff;
+}
+
+.mobile-nav-link:hover {
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+/* 表格响应式 */
+@media (max-width: 768px) {
+  .desktop-table {
+    display: none !important;
+  }
+  
+  .mobile-card-list {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-card-list {
+    display: none !important;
+  }
+}
+
+/* 按钮响应式 */
+@media (max-width: 768px) {
+  .responsive-button {
+    width: 100%;
+    padding: 14px 24px;
+  }
+  
+  .button-group {
+    flex-direction: column;
+  }
+}
+
+/* 输入框响应式 */
+@media (max-width: 768px) {
+  .responsive-input,
+  .responsive-select {
+    padding: 12px;
+    font-size: 16px;
+  }
+}
+
+/* 产品卡片响应式 */
+@media (max-width: 1024px) {
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .product-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* 分页响应式 */
+@media (max-width: 768px) {
+  .pagination {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  
+  .page-info {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  
+  .page-button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}
+
+/* 滚动条样式优化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 移动端触摸优化 */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  button,
+  a {
+    cursor: pointer;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  .nav,
+  .footer,
+  .button-group,
+  .filter-buttons {
+    display: none !important;
+  }
+  
+  .main-content {
+    padding: 0;
+  }
+}
