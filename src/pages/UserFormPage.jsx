@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getProductsByParams } from '../api/productApi';
 
 // 字段显示名称映射配置
-// 如果需要修改显示名称，请在此处修改对应的值
 const FIELD_LABELS = {
   id: 'ID',
   name: '产品名称',
@@ -48,6 +47,35 @@ const FIELD_UNITS = {
   fin_spacing: 'mm',
 };
 
+// 表单验证规则
+const VALIDATION_RULES = {
+  evaporating_temp: {
+    required: true,
+    type: 'number',
+    min: -50,
+    max: 10,
+    message: '蒸发温度请输入-50~10之间的数值'
+  },
+  repo_temp: {
+    required: true,
+    type: 'number',
+    min: -40,
+    max: 30,
+    message: '库温请输入-40~30之间的数值'
+  },
+  required_cooling_cap: {
+    required: true,
+    type: 'number',
+    min: 0.1,
+    message: '需求冷量请输入大于0的数值'
+  },
+  fan_distance: {
+    type: 'number',
+    min: 0,
+    message: '风扇片距不能为负数'
+  }
+};
+
 function UserFormPage() {
   const [formData, setFormData] = useState({
     evaporating_temp: '',
@@ -64,27 +92,14 @@ function UserFormPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // 监听屏幕大小变化
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-
-    return () => {
-      window.removeEventListener('resize', checkScreenSize);
-    };
-  }, []);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // 页面加载时获取选项数据
   useEffect(() => {
     loadOptions();
   }, []);
 
+  // 加载下拉选项
   const loadOptions = async () => {
     try {
       setLoading(true);
@@ -92,8 +107,8 @@ function UserFormPage() {
         getRefrigerantOptions(),
         getRefrigerantSupplyTypeOptions(),
       ]);
-      setRefrigerantOptions(refrigerantData);
-      setRefrigerantSupplyTypeOptions(refrigerantSupplyTypeData);
+      setRefrigerantOptions(Array.isArray(refrigerantData) ? refrigerantData : []);
+      setRefrigerantSupplyTypeOptions(Array.isArray(refrigerantSupplyTypeData) ? refrigerantSupplyTypeData : []);
     } catch (err) {
       setError('加载选项失败，请稍后重试');
       console.error('加载选项失败:', err);
@@ -102,64 +117,96 @@ function UserFormPage() {
     }
   };
 
+  // 表单输入变更
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    // 清除该字段的错误提示
+    setFieldErrors(prev => ({ ...prev, [name]: '' }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value.trim() === '' ? '' : value
+    }));
   };
 
+  // 表单验证逻辑
+  const validateForm = () => {
+    const errors = {};
+    let isValid = true;
+
+    // 遍历验证规则
+    Object.entries(VALIDATION_RULES).forEach(([field, rule]) => {
+      const value = formData[field];
+      
+      // 必填项验证
+      if (rule.required && value === '') {
+        errors[field] = `${FIELD_LABELS[field]}为必填项`;
+        isValid = false;
+        return;
+      }
+
+      if (value === '') return; // 非必填项为空时跳过
+
+      const numValue = parseFloat(value);
+      if (isNaN(numValue)) {
+        errors[field] = `${FIELD_LABELS[field]}请输入有效的数字`;
+        isValid = false;
+      } else if (rule.min !== undefined && numValue < rule.min) {
+        errors[field] = rule.message;
+        isValid = false;
+      } else if (rule.max !== undefined && numValue > rule.max) {
+        errors[field] = rule.message;
+        isValid = false;
+      }
+    });
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
+  // 提交处理
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setSubmitted(false);
 
-    // 验证风扇片距不能为负数
-    if (formData.fan_distance !== '' && parseFloat(formData.fan_distance) < 0) {
-      setError('风扇片距不能为负数');
+    // 表单验证
+    if (!validateForm()) {
       return;
     }
 
     try {
       setLoading(true);
       const result = await getProductsByParams(formData);
-      console.log('API返回数据:', result);
       
-      // 处理API返回的数据
+      // 统一处理API返回数据格式
       let productsData = [];
-      if (Array.isArray(result)) {
-        productsData = result;
-      } else if (result && result.items && Array.isArray(result.items)) {
-        productsData = result.items;
-      } else if (result && result.data) {
-        if (Array.isArray(result.data)) {
-          productsData = result.data;
-        } else if (result.data.items && Array.isArray(result.data.items)) {
-          productsData = result.data.items;
-        } else {
-          productsData = [result.data];
+      if (result) {
+        if (Array.isArray(result)) {
+          productsData = result;
+        } else if (result.items && Array.isArray(result.items)) {
+          productsData = result.items;
+        } else if (result.data) {
+          productsData = Array.isArray(result.data) ? result.data : 
+                        (result.data.items && Array.isArray(result.data.items)) ? result.data.items : 
+                        [result.data].filter(Boolean);
+        } else if (result.list && Array.isArray(result.list)) {
+          productsData = result.list;
         }
-      } else if (result && Array.isArray(result.list)) {
-        productsData = result.list;
       }
       
-      console.log('处理后的产品数据:', productsData);
+      // 过滤无效数据
+      productsData = productsData.filter(item => item && (item.id || item.name));
       setProducts(productsData);
       setSubmitted(true);
     } catch (err) {
       console.error('获取产品列表失败:', err);
-      setError('获取产品列表失败，请稍后重试');
+      setError('获取产品列表失败，请检查网络或稍后重试');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
-    handleSubmit();
-  };
-
+  // 重置表单
   const handleReset = () => {
     setFormData({
       evaporating_temp: '',
@@ -172,192 +219,246 @@ function UserFormPage() {
     setProducts([]);
     setSubmitted(false);
     setError(null);
+    setFieldErrors({});
   };
 
   return (
-    <div style={styles.container} className="user-form-container">
-      <div style={styles.header} className="user-form-header">
-        <h1 style={styles.headerTitle}>产品查询</h1>
-        <p style={styles.headerDesc}>填写下方表单查询符合条件的产品</p>
-      </div>
-
-      <div style={styles.formContainer} className="user-form-container">
-        <form onSubmit={handleFormSubmit} style={styles.form} className="user-form">
-          <div style={styles.formGroup} className="user-form-group">
-            <label htmlFor="evaporating_temp" style={styles.label} className="user-label">
-              蒸发温度 (℃)
-            </label>
-            <input
-              type="number"
-              id="evaporating_temp"
-              name="evaporating_temp"
-              value={formData.evaporating_temp}
-              onChange={handleInputChange}
-              step="0.1"
-              placeholder="请输入蒸发温度"
-              style={styles.input}
-              className="responsive-input"
-            />
+    <div className="font-inter bg-neutral-100 min-h-screen flex flex-col">
+      {/* 页面头部 */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <i className="fa fa-snowflake-o text-primary text-2xl"></i>
+            <h1 className="text-[clamp(1.25rem,2vw,1.75rem)] font-bold text-neutral-700">制冷参数查询系统</h1>
           </div>
-
-          <div style={styles.formGroup} className="user-form-group">
-            <label htmlFor="repo_temp" style={styles.label} className="user-label">
-              库温 (℃)
-            </label>
-            <input
-              type="number"
-              id="repo_temp"
-              name="repo_temp"
-              value={formData.repo_temp}
-              onChange={handleInputChange}
-              step="0.1"
-              placeholder="请输入库温"
-              style={styles.input}
-              className="responsive-input"
-            />
+          <div className="text-neutral-400 text-sm hidden sm:block">
+            <span className="flex items-center gap-1">
+              <i className="fa fa-info-circle"></i>
+              <span>精准查询 · 高效便捷</span>
+            </span>
           </div>
+        </div>
+      </header>
 
-          <div style={styles.formGroup} className="user-form-group">
-            <label htmlFor="required_cooling_cap" style={styles.label} className="user-label">
-              需求冷量 (kW)
-            </label>
-            <input
-              type="number"
-              id="required_cooling_cap"
-              name="required_cooling_cap"
-              value={formData.required_cooling_cap}
-              onChange={handleInputChange}
-              step="0.1"
-              placeholder="请输入需求冷量"
-              style={styles.input}
-              className="responsive-input"
-            />
-          </div>
+      {/* 主内容区 */}
+      <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        {/* 查询卡片 */}
+        <div className="bg-white rounded-xl shadow-card card-transition scale-hover mb-8 p-6 md:p-8 max-w-3xl mx-auto">
+          <h2 className="text-[clamp(1.1rem,1.8vw,1.5rem)] font-semibold text-neutral-700 mb-6 flex items-center">
+            <i className="fa fa-search text-primary mr-2"></i>
+            参数查询条件
+          </h2>
+          
+          {/* 表单 */}
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* 蒸发温度（必填） */}
+            <div className="space-y-2">
+              <label className="block text-neutral-600 font-medium">
+                {FIELD_LABELS.evaporating_temp} 
+                <span className="text-red-500">*</span>
+                <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.evaporating_temp}）</span>
+              </label>
+              <input 
+                type="number" 
+                name="evaporating_temp"
+                value={formData.evaporating_temp}
+                onChange={handleInputChange}
+                step="0.1"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
+                placeholder={`请输入${FIELD_LABELS.evaporating_temp}`}
+                disabled={loading}
+              />
+              {fieldErrors.evaporating_temp && (
+                <p className="text-red-500 text-xs h-5">{fieldErrors.evaporating_temp}</p>
+              )}
+            </div>
 
-          <div style={styles.formGroup} className="user-form-group">
-            <label htmlFor="refrigerant" style={styles.label} className="user-label">
-              制冷剂
-            </label>
-            <select
-              id="refrigerant"
-              name="refrigerant"
-              value={formData.refrigerant}
-              onChange={handleInputChange}
-              style={styles.select}
-              className="responsive-select"
-            >
-              <option value="">请选择制冷剂</option>
-              {refrigerantOptions.map((option) => (
-                <option key={option.id} value={option.name}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* 库温（必填） */}
+            <div className="space-y-2">
+              <label className="block text-neutral-600 font-medium">
+                {FIELD_LABELS.repo_temp} 
+                <span className="text-red-500">*</span>
+                <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.repo_temp}）</span>
+              </label>
+              <input 
+                type="number" 
+                name="repo_temp"
+                value={formData.repo_temp}
+                onChange={handleInputChange}
+                step="0.1"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
+                placeholder={`请输入${FIELD_LABELS.repo_temp}`}
+                disabled={loading}
+              />
+              {fieldErrors.repo_temp && (
+                <p className="text-red-500 text-xs h-5">{fieldErrors.repo_temp}</p>
+              )}
+            </div>
 
-          <div style={styles.formGroup} className="user-form-group">
-            <label htmlFor="refrigerant_supply_type" style={styles.label} className="user-label">
-              制冷类型
-            </label>
-            <select
-              id="refrigerant_supply_type"
-              name="refrigerant_supply_type"
-              value={formData.refrigerant_supply_type}
-              onChange={handleInputChange}
-              style={styles.select}
-              className="responsive-select"
-            >
-              <option value="">请选择制冷类型</option>
-              {refrigerantSupplyTypeOptions.map((option) => (
-                <option key={option.id} value={option.name}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            {/* 需求冷量（必填） */}
+            <div className="space-y-2">
+              <label className="block text-neutral-600 font-medium">
+                {FIELD_LABELS.required_cooling_cap} 
+                <span className="text-red-500">*</span>
+                <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.required_cooling_cap}）</span>
+              </label>
+              <input 
+                type="number" 
+                name="required_cooling_cap"
+                value={formData.required_cooling_cap}
+                onChange={handleInputChange}
+                step="0.1"
+                min="0.1"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
+                placeholder={`请输入${FIELD_LABELS.required_cooling_cap}`}
+                disabled={loading}
+              />
+              {fieldErrors.required_cooling_cap && (
+                <p className="text-red-500 text-xs h-5">{fieldErrors.required_cooling_cap}</p>
+              )}
+            </div>
 
-          <div style={styles.formGroup} className="user-form-group">
-            <label htmlFor="fan_distance" style={styles.label} className="user-label">
-              风扇片距 (m)
-            </label>
-            <input
-              type="number"
-              id="fan_distance"
-              name="fan_distance"
-              value={formData.fan_distance}
-              onChange={handleInputChange}
-              step="0.1"
-              min="0"
-              placeholder="请输入风扇片距"
-              style={styles.input}
-              className="responsive-input"
-            />
-          </div>
+            {/* 制冷剂（选填） */}
+            <div className="space-y-2">
+              <label className="block text-neutral-600 font-medium">
+                {FIELD_LABELS.refrigerant}
+                <span className="text-xs text-neutral-400 ml-1">（选填）</span>
+              </label>
+              <select 
+                name="refrigerant"
+                value={formData.refrigerant}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
+                disabled={loading}
+              >
+                <option value="">请选择{FIELD_LABELS.refrigerant}</option>
+                {refrigerantOptions.map((option) => (
+                  <option key={option.id || option.name} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div style={styles.buttonGroup} className="button-group">
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              style={{
-                ...styles.button,
-                ...styles.primaryButton,
-                ...(loading ? styles.buttonDisabled : {}),
-              }}
-              className="responsive-button"
-            >
-              {loading ? '查询中...' : '查询'}
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              disabled={loading}
-              style={{
-                ...styles.button,
-                ...styles.secondaryButton,
-                ...(loading ? styles.buttonDisabled : {}),
-              }}
-              className="responsive-button"
-            >
-              重置
-            </button>
-          </div>
-        </form>
+            {/* 制冷类型（选填） */}
+            <div className="space-y-2">
+              <label className="block text-neutral-600 font-medium">
+                {FIELD_LABELS.refrigerant_supply_type}
+                <span className="text-xs text-neutral-400 ml-1">（选填）</span>
+              </label>
+              <select 
+                name="refrigerant_supply_type"
+                value={formData.refrigerant_supply_type}
+                onChange={handleInputChange}
+                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
+                disabled={loading}
+              >
+                <option value="">请选择{FIELD_LABELS.refrigerant_supply_type}</option>
+                {refrigerantSupplyTypeOptions.map((option) => (
+                  <option key={option.id || option.name} value={option.name}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {error && (
-          <div style={styles.error}>
-            {error}
-          </div>
-        )}
+            {/* 风扇片距（选填） */}
+            <div className="space-y-2">
+              <label className="block text-neutral-600 font-medium">
+                {FIELD_LABELS.fan_distance}
+                <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.fan_distance}，选填）</span>
+              </label>
+              <input 
+                type="number" 
+                name="fan_distance"
+                value={formData.fan_distance}
+                onChange={handleInputChange}
+                step="0.1"
+                min="0"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
+                placeholder={`请输入${FIELD_LABELS.fan_distance}`}
+                disabled={loading}
+              />
+              {fieldErrors.fan_distance && (
+                <p className="text-red-500 text-xs h-5">{fieldErrors.fan_distance}</p>
+              )}
+            </div>
 
+            {/* 提交按钮 */}
+            <div className="md:col-span-2 lg:col-span-3 flex justify-center pt-4 gap-4">
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="px-8 py-3 bg-primary hover:bg-secondary text-white rounded-lg font-medium transition-all duration-300 ease-in-out shadow-lg hover:shadow-hover flex items-center gap-2 hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <i className="fa fa-search"></i>
+                <span>{loading ? '查询中...' : '查询参数'}</span>
+                {loading && <span className="fa fa-spinner fa-spin"></span>}
+              </button>
+              <button 
+                type="button"
+                onClick={handleReset}
+                disabled={loading}
+                className="px-8 py-3 bg-white hover:bg-neutral-50 text-primary border border-primary rounded-lg font-medium transition-all duration-300 ease-in-out hover:scale-[1.01] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <i className="fa fa-refresh"></i>
+                <span>重置</span>
+              </button>
+            </div>
+          </form>
+
+          {/* 全局错误提示 */}
+          {error && (
+            <div className="mt-4 p-3 bg-white/90 border border-red-200 rounded-lg text-red-500 text-center">
+              <i className="fa fa-exclamation-circle mr-2"></i>
+              {error}
+            </div>
+          )}
+        </div>
+
+        {/* 结果展示区域 */}
         {submitted && !loading && (
-          <div style={styles.resultContainer} className="user-result-container">
-            <h3 style={styles.resultTitle} className="user-result-title">
+          <div className="bg-white rounded-xl shadow-card transition-all duration-500 ease-in-out hover:scale-[1.01] p-6 md:p-8 max-w-5xl mx-auto">
+            <h2 className="text-[clamp(1.1rem,1.8vw,1.5rem)] font-semibold text-neutral-700 mb-6 flex items-center">
+              <i className="fa fa-table text-primary mr-2"></i>
               查询结果 ({products.length} 条)
-            </h3>
+            </h2>
+            
             {products.length === 0 ? (
-              <div style={styles.empty}>没有找到符合条件的产品</div>
+              <div className="py-12 text-center text-neutral-400">
+                <i className="fa fa-inbox text-4xl mb-3"></i>
+                <p>没有找到符合条件的产品</p>
+                <p className="text-sm mt-2 text-neutral-300">建议调整查询条件后重试</p>
+              </div>
             ) : (
-              <div style={styles.productList} className="product-grid">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product, index) => (
-                  <div key={product.id || index} style={styles.productCard} className="user-product-card">
-                    <div style={styles.productName} className="user-product-name">{product.name || `产品 ${product.id || index}`}</div>
-                    <div style={styles.productInfo} className="user-product-info">
+                  <div 
+                    key={product.id || `product-${index}`} 
+                    className="border border-neutral-200 rounded-lg p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
+                  >
+                    <h3 className="text-lg font-semibold text-neutral-800 mb-4 pb-2 border-b border-neutral-100">
+                      {product.name || `未命名产品 ${index + 1}`}
+                    </h3>
+                    <div className="space-y-2 text-sm text-neutral-600">
                       {Object.keys(product).map((key) => {
-                        // 跳过id和name字段，只显示参数字段
+                        // 跳过id和name字段
                         if (key === 'id' || key === 'name') return null;
                         
                         const value = product[key];
                         const label = FIELD_LABELS[key] || key;
                         const unit = FIELD_UNITS[key] || '';
                         
-                        // 将所有值转换为字符串
-                        const displayValue = value === null || value === undefined ? '' : String(value);
+                        // 空值处理
+                        const displayValue = value === null || value === undefined 
+                          ? '未填写' 
+                          : (typeof value === 'number' ? value.toFixed(1) : String(value));
                         
                         return (
-                          <span key={`${product.id || index}-${key}`}>
-                            {label}: {displayValue}{unit}
-                          </span>
+                          <div key={`${product.id || index}-${key}`} className="flex justify-between">
+                            <span className="text-neutral-700 font-medium">{label}：</span>
+                            <span className="text-neutral-500">{displayValue}{unit}</span>
+                          </div>
                         );
                       })}
                     </div>
@@ -367,143 +468,16 @@ function UserFormPage() {
             )}
           </div>
         )}
-      </div>
+      </main>
+
+      {/* 页脚 */}
+      <footer className="bg-neutral-700 text-neutral-300 py-6 mt-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
+          <p>© 2025 制冷参数查询系统 | 高端制冷解决方案</p>
+        </div>
+      </footer>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: '1200px',
-    margin: '0 auto',
-    padding: '20px',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '40px',
-  },
-  headerTitle: {
-    fontSize: '32px',
-  },
-  headerDesc: {
-    fontSize: '16px',
-    color: '#666',
-  },
-  formContainer: {
-    maxWidth: '600px',
-    margin: '0 auto',
-  },
-  form: {
-    backgroundColor: '#fff',
-    padding: '30px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  },
-  formGroup: {
-    marginBottom: '20px',
-  },
-  label: {
-    display: 'block',
-    marginBottom: '8px',
-    fontWeight: '500',
-    color: '#333',
-    fontSize: '14px',
-  },
-  input: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-  },
-  select: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    backgroundColor: '#fff',
-  },
-  buttonGroup: {
-    display: 'flex',
-    gap: '10px',
-    marginTop: '30px',
-  },
-  button: {
-    flex: 1,
-    padding: '12px 24px',
-    border: 'none',
-    borderRadius: '4px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-  },
-  primaryButton: {
-    backgroundColor: '#1890ff',
-    color: '#fff',
-  },
-  secondaryButton: {
-    backgroundColor: '#fff',
-    color: '#1890ff',
-    border: '1px solid #1890ff',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed',
-  },
-  error: {
-    marginTop: '20px',
-    padding: '12px',
-    backgroundColor: '#fff2f0',
-    border: '1px solid #ffccc7',
-    borderRadius: '4px',
-    color: '#ff4d4f',
-    textAlign: 'center',
-  },
-  resultContainer: {
-    marginTop: '30px',
-    backgroundColor: '#fff',
-    padding: '30px',
-    borderRadius: '8px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  },
-  resultTitle: {
-    marginBottom: '20px',
-    color: '#333',
-    fontSize: '20px',
-  },
-  empty: {
-    textAlign: 'center',
-    color: '#999',
-    padding: '40px 0',
-  },
-  productList: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-    gap: '20px',
-  },
-  productCard: {
-    border: '1px solid #e8e8e8',
-    borderRadius: '4px',
-    padding: '16px',
-    transition: 'all 0.3s',
-  },
-  productName: {
-    fontSize: '16px',
-    fontWeight: '500',
-    marginBottom: '12px',
-    color: '#333',
-  },
-  productInfo: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-    fontSize: '13px',
-    color: '#666',
-  },
-};
 
 export default UserFormPage;
