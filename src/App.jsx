@@ -88,9 +88,9 @@ function App() {
           </Routes>
         </main>
 
-        <footer style={styles.footer} className="footer">
+        {/* <footer style={styles.footer} className="footer">
           <p style={styles.footerText} className="footer-text">&copy; 2026 产品筛选系统. All rights reserved.</p>
-        </footer>
+        </footer> */}
       </div>
     </Router>
   );
