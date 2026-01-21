@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getProductsByParams } from '../api/productApi';
-
+import './UserFormPage.css';
 // 字段显示名称映射配置
 const FIELD_LABELS = {
   id: 'ID',
@@ -25,7 +25,9 @@ const FIELD_LABELS = {
   weight: '重量',
   fin_spacing: '片距',
   comment: '备注',
-  is_deleted: '是否删除',
+  cooling_capacity: '制冷量',
+  working_status: '工况',
+  // is_deleted: '是否删除',
 };
 
 // 字段单位映射配置
@@ -45,6 +47,7 @@ const FIELD_UNITS = {
   noise: 'dB',
   weight: 'kg',
   fin_spacing: 'mm',
+  cooling_capacity: 'kW'
 };
 
 // 表单验证规则
@@ -438,12 +441,13 @@ function UserFormPage() {
                     className="border border-neutral-200 rounded-lg p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
                   >
                     <h3 className="text-lg font-semibold text-neutral-800 mb-4 pb-2 border-b border-neutral-100">
-                      {product.name || `未命名产品 ${index + 1}`}
+                      {product.model || `未命名产品 ${index + 1}`}
                     </h3>
+                    {/* 产品字段列表 */}
                     <div className="space-y-2 text-sm text-neutral-600">
                       {Object.keys(product).map((key) => {
                         // 跳过id和name字段
-                        if (key === 'id' || key === 'name') return null;
+                        if (key === 'id' || key === 'name' || key == 'is_deleted') return null;
                         
                         const value = product[key];
                         const label = FIELD_LABELS[key] || key;
@@ -455,9 +459,20 @@ function UserFormPage() {
                           : (typeof value === 'number' ? value.toFixed(1) : String(value));
                         
                         return (
-                          <div key={`${product.id || index}-${key}`} className="flex justify-between">
-                            <span className="text-neutral-700 font-medium">{label}：</span>
-                            <span className="text-neutral-500">{displayValue}{unit}</span>
+                          // 每一行使用左右布局：
+                          // 左侧 key 不换行，右侧 value 允许换行并右对齐
+                          <div 
+                            key={`${product.id || index}-${key}`} 
+                            className="flex justify-between items-start gap-2"
+                          >
+                            {/* 左侧字段名称：不换行 */}
+                            <span className="text-neutral-700 font-medium whitespace-nowrap pr-2">
+                              {label}：
+                            </span>
+                            {/* 右侧字段值：占满剩余空间，右对齐且可换行 */}
+                            <span className="text-neutral-500 flex-1 text-right break-words">
+                              {displayValue}{unit}
+                            </span>
                           </div>
                         );
                       })}

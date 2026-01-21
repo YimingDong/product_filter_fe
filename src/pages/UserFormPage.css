@@ -56,23 +56,23 @@
   }
 
   .user-label {
-    fontSize: '14px',
+    font-size: 14px;
   }
 
   .user-input,
   .user-select {
     padding: 12px;
-    fontSize: '16px',
+    font-size: 16px;
   }
 
   .user-button-group {
-    flexDirection: 'column',
-    gap: '10px',
+    flex-direction: column;
+    gap: 10px;
   }
 
   .user-button {
-    width: '100%',
-    padding: '14px 24px',
+    width: 100%;
+    padding: 14px 24px;
   }
 
   .user-result-container {
@@ -81,25 +81,25 @@
   }
 
   .user-result-title {
-    fontSize: '18px',
-    marginBottom: '15px',
+    font-size: 18px;
+    margin-bottom: 15px;
   }
 
   .user-product-list {
-    gridTemplateColumns: '1fr',
-    gap: '12px',
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .user-product-card {
-    padding: '12px',
+    padding: 12px;
   }
 
   .user-product-name {
-    fontSize: '15px',
+    font-size: 15px;
   }
 
   .user-product-info {
-    fontSize: '13px',
+    font-size: 13px;
   }
 }
 
