@@ -229,12 +229,12 @@ function UserFormPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <i className="fa fa-snowflake-o text-primary text-2xl"></i>
-            <h1 className="text-[clamp(1.25rem,2vw,1.75rem)] font-bold text-neutral-700">制冷参数查询系统</h1>
+            <h1 className="text-[clamp(1.25rem,2vw,1.75rem)] font-bold text-neutral-700">冷风机查询</h1>
           </div>
           <div className="text-neutral-400 text-sm hidden sm:block">
             <span className="flex items-center gap-1">
               <i className="fa fa-info-circle"></i>
-              <span>精准查询 · 高效便捷</span>
+              <span>哲雪制冷 · 精准选型</span>
             </span>
           </div>
         </div>
@@ -246,7 +246,7 @@ function UserFormPage() {
         <div className="bg-white rounded-xl shadow-card card-transition scale-hover mb-8 p-6 md:p-8 max-w-3xl mx-auto">
           <h2 className="text-[clamp(1.1rem,1.8vw,1.5rem)] font-semibold text-neutral-700 mb-6 flex items-center">
             <i className="fa fa-search text-primary mr-2"></i>
-            参数查询条件
+            查询
           </h2>
           
           {/* 表单 */}
@@ -418,7 +418,7 @@ function UserFormPage() {
 
         {/* 结果展示区域 */}
         {submitted && !loading && (
-          <div className="bg-white rounded-xl shadow-card transition-all duration-500 ease-in-out hover:scale-[1.01] p-6 md:p-8 max-w-5xl mx-auto">
+          <div className="bg-blue-50 rounded-xl shadow-card transition-all duration-500 ease-in-out hover:scale-[1.01] p-6 md:p-8 max-w-5xl mx-auto">
             <h2 className="text-[clamp(1.1rem,1.8vw,1.5rem)] font-semibold text-neutral-700 mb-6 flex items-center">
               <i className="fa fa-table text-primary mr-2"></i>
               查询结果 ({products.length} 条)
@@ -437,7 +437,7 @@ function UserFormPage() {
                     key={product.id || `product-${index}`} 
                     className="border border-neutral-200 rounded-lg p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
                   >
-                    <h3 className="text-lg font-semibold text-neutral-800 mb-4 pb-2 border-b border-neutral-100">
+                    <h3 className="text-lg font-semibold text-white mb-4 py-3 px-4 rounded-lg bg-primary">
                       {product.name || `未命名产品 ${index + 1}`}
                     </h3>
                     <div className="space-y-2 text-sm text-neutral-600">
@@ -473,7 +473,7 @@ function UserFormPage() {
       {/* 页脚 */}
       <footer className="bg-neutral-700 text-neutral-300 py-6 mt-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-          <p>© 2025 制冷参数查询系统 | 高端制冷解决方案</p>
+          <p>© 2026 哲雪制冷查询系统 | 高端制冷解决方案</p>
         </div>
       </footer>
     </div>
