@@ -179,7 +179,15 @@ function UserFormPage() {
 
     try {
       setLoading(true);
-      const result = await getProductsByParams(formData);
+      // 处理选填字段：将空字符串转换为 null
+      const submitData = {
+        ...formData,
+        // 选填字段为空时传 null
+        refrigerant: formData.refrigerant === '' ? null : formData.refrigerant,
+        refrigerant_supply_type: formData.refrigerant_supply_type === '' ? null : formData.refrigerant_supply_type,
+        fan_distance: formData.fan_distance === '' ? null : formData.fan_distance,
+      };
+      const result = await getProductsByParams(submitData);
       
       // 统一处理API返回数据格式
       let productsData = [];
