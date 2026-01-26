@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getProductsByParams } from '../api/productApi';
 import './UserFormPage.css';
+import logoHorizontal from '../images/logo_horizontal.png';
 // 字段显示名称映射配置
 const FIELD_LABELS = {
   id: 'ID',
@@ -496,7 +497,14 @@ function UserFormPage() {
       {/* 页脚 */}
       <footer className="bg-neutral-700 text-neutral-300 py-6 mt-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-          <p>© 2025 制冷参数查询系统 | 高端制冷解决方案</p>
+          <p className="flex items-center justify-center gap-2">
+            <span>© 2025 制冷参数查询系统 | 高端制冷解决方案</span>
+            <img 
+              src={logoHorizontal} 
+              alt="哲雪集团" 
+              className="h-6 object-contain"
+            />
+          </p>
         </div>
       </footer>
     </div>

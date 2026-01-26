@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import UserFormPage from './pages/UserFormPage';
 import AdminPage from './pages/AdminPage';
 import './App.css';
+import logoImage from './images/logo_circle.png';
 
 function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -41,16 +42,21 @@ function App() {
       <div style={styles.app}>
         <nav style={styles.nav}>
           <div style={styles.navContainer} className="nav-container">
-            <h1 style={styles.navTitle} className="nav-title">产品筛选系统</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img 
+                src={logoImage} 
+                alt="哲雪集团" 
+                style={{ height: '48px', width: '48px', objectFit: 'contain' }}
+              />
+              <h1 style={styles.navTitle} className="nav-title">产品筛选系统</h1>
+            </div>
             
             {/* 桌面端导航 */}
             <div style={styles.navLinks} className="nav-links">
               <Link to="/" style={styles.navLink} className="nav-link" onClick={handleNavClick}>
                 产品查询
               </Link>
-              <Link to="/admin" style={styles.navLink} className="nav-link" onClick={handleNavClick}>
-                管理员
-              </Link>
+              {/* 管理员菜单已隐藏 */}
             </div>
 
             {/* 移动端菜单按钮 */}
@@ -74,9 +80,7 @@ function App() {
               <Link to="/" style={styles.mobileNavLink} className="mobile-nav-link" onClick={handleNavClick}>
                 产品查询
               </Link>
-              <Link to="/admin" style={styles.mobileNavLink} className="mobile-nav-link" onClick={handleNavClick}>
-                管理员
-              </Link>
+              {/* 管理员菜单已隐藏 */}
             </div>
           )}
         </nav>
