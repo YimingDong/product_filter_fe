@@ -240,7 +240,7 @@ function UserFormPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <i className="fa fa-snowflake-o text-primary text-2xl"></i>
-            <h1 className="text-[clamp(1.25rem,2vw,1.75rem)] font-bold text-neutral-700">制冷参数查询系统</h1>
+            <h1 className="text-[clamp(1.25rem,2vw,1.75rem)] font-bold text-neutral-700">冷风机参数查询</h1>
           </div>
           <div className="text-neutral-400 text-sm hidden sm:block">
             <span className="flex items-center gap-1">
