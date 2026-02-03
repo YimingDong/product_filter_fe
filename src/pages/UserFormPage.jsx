@@ -47,7 +47,6 @@ const FIELD_UNITS = {
   pipe_dia: 'mm',
   noise: 'dB',
   weight: 'kg',
-  fin_spacing: 'mm',
   cooling_capacity: 'kW'
 };
 
