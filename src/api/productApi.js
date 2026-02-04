@@ -5,11 +5,17 @@ import apiClient from './config';
 // 制冷剂选项
 const mockRefrigerantOptions = [
   { id: 1, name: 'R404A' },
+  {id: 2, name: 'R22'},
+  {id: 3, name: 'R407C'},
+  {id: 4, name: 'R410A'},
+  {id: 5, name: 'R507C'},
+  {id: 6, name: 'R23'}
 ];
 
 // 制冷类型选项
 const mockRefrigerantSupplyTypeOptions = [
   { id: 1, name: '泵供液' },
+  { id: 2, name: '直膨' },
 ];
 
 const mockProducts = [

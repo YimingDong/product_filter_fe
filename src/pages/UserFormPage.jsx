@@ -25,7 +25,7 @@ const FIELD_LABELS = {
   noise: '噪音',
   weight: '重量',
   fin_spacing: '片距',
-  comment: '备注',
+  // comment: '备注',
   cooling_capacity: '制冷量',
   working_status: '工况',
   // is_deleted: '是否删除',
@@ -210,8 +210,8 @@ function UserFormPage() {
       setProducts(productsData);
       setSubmitted(true);
     } catch (err) {
-      console.error('获取产品列表失败:', err);
-      setError('获取产品列表失败，请检查网络或稍后重试');
+      console.error('获取产品列表失败:', err.response.data.message);
+      setError(err.response.data.message);
     } finally {
       setLoading(false);
     }
@@ -342,7 +342,7 @@ function UserFormPage() {
                 className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
                 disabled={loading}
               >
-                <option value="">请选择{FIELD_LABELS.refrigerant}</option>
+                <option value="">无特定制冷剂</option>
                 {refrigerantOptions.map((option) => (
                   <option key={option.id || option.name} value={option.name}>
                     {option.name}
@@ -363,8 +363,9 @@ function UserFormPage() {
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
                 disabled={loading}
+                placeholder="请选择制冷类型"
               >
-                <option value="">请选择{FIELD_LABELS.refrigerant_supply_type}</option>
+                <option value="">无特定制冷类型</option>
                 {refrigerantSupplyTypeOptions.map((option) => (
                   <option key={option.id || option.name} value={option.name}>
                     {option.name}
@@ -455,11 +456,17 @@ function UserFormPage() {
                     <div className="space-y-2 text-sm text-neutral-600">
                       {Object.keys(product).map((key) => {
                         // 跳过id和name字段
-                        if (key === 'id' || key === 'name' || key == 'is_deleted') return null;
+                        if (key === 'id' || key === 'name' || key == 'is_deleted' || key == 'comment') return null;
                         
                         const value = product[key];
                         const label = FIELD_LABELS[key] || key;
                         const unit = FIELD_UNITS[key] || '';
+
+                        // 备注信息（用于提示）
+                        const hasComment = Boolean(product.comment);
+                        const shouldShowCommentIcon =
+                          hasComment && (key === 'total_fan_power' || key === 'total_fan_current');
+                        const tooltipText = shouldShowCommentIcon ? String(product.comment) : '';
                         
                         // 空值处理
                         const displayValue = value === null || value === undefined 
@@ -475,7 +482,16 @@ function UserFormPage() {
                           >
                             {/* 左侧字段名称：不换行 */}
                             <span className="text-neutral-700 font-medium whitespace-nowrap pr-2">
-                              {label}：
+                              {label}
+                              {shouldShowCommentIcon && (
+                                <span
+                                  className="inline-flex items-center justify-center ml-1 text-[10px] text-neutral-400 rounded-full w-3 h-3 cursor-help bg-neutral-200"
+                                  title={tooltipText}
+                                >
+                                  !
+                                </span>
+                              )}
+                              ：
                             </span>
                             {/* 右侧字段值：占满剩余空间，右对齐且可换行 */}
                             <span className="text-neutral-500 flex-1 text-right break-words">
