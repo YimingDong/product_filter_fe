@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getProductsByParams } from '../api/productApi';
+import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getProductsByParams } from '../api/productApi';
 import './UserFormPage.css';
 import logoHorizontal from '../images/logo_horizontal.png';
 // 字段显示名称映射配置
@@ -7,7 +7,7 @@ const FIELD_LABELS = {
   id: 'ID',
   name: '产品名称',
   model: '型号',
-  series: '系列',
+  series: '产品系列',
   evaporating_temp: '蒸发温度',
   repo_temp: '库温',
   required_cooling_cap: '需求冷量',
@@ -86,16 +86,19 @@ function UserFormPage() {
     required_cooling_cap: '',
     refrigerant: '',
     refrigerant_supply_type: '',
+    series: '',
     fan_distance: '',
   });
 
   const [refrigerantOptions, setRefrigerantOptions] = useState([]);
   const [refrigerantSupplyTypeOptions, setRefrigerantSupplyTypeOptions] = useState([]);
+  const [seriesOptions, setSeriesOptions] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showMoreFilters, setShowMoreFilters] = useState(false);
 
   // 页面加载时获取选项数据
   useEffect(() => {
@@ -106,12 +109,14 @@ function UserFormPage() {
   const loadOptions = async () => {
     try {
       setLoading(true);
-      const [refrigerantData, refrigerantSupplyTypeData] = await Promise.all([
+      const [refrigerantData, refrigerantSupplyTypeData, seriesData] = await Promise.all([
         getRefrigerantOptions(),
         getRefrigerantSupplyTypeOptions(),
+        getSeriesOptions(),
       ]);
       setRefrigerantOptions(Array.isArray(refrigerantData) ? refrigerantData : []);
       setRefrigerantSupplyTypeOptions(Array.isArray(refrigerantSupplyTypeData) ? refrigerantSupplyTypeData : []);
+      setSeriesOptions(Array.isArray(seriesData) ? seriesData : []);
     } catch (err) {
       setError('加载选项失败，请稍后重试');
       console.error('加载选项失败:', err);
@@ -185,6 +190,7 @@ function UserFormPage() {
         // 选填字段为空时传 null
         refrigerant: formData.refrigerant === '' ? null : formData.refrigerant,
         refrigerant_supply_type: formData.refrigerant_supply_type === '' ? null : formData.refrigerant_supply_type,
+        series: formData.series === '' ? null : formData.series,
         fan_distance: formData.fan_distance === '' ? null : formData.fan_distance,
       };
       const result = await getProductsByParams(submitData);
@@ -225,6 +231,7 @@ function UserFormPage() {
       required_cooling_cap: '',
       refrigerant: '',
       refrigerant_supply_type: '',
+      series: '',
       fan_distance: '',
     });
     setProducts([]);
@@ -329,71 +336,110 @@ function UserFormPage() {
               )}
             </div>
 
-            {/* 制冷剂（选填） */}
-            <div className="space-y-2">
-              <label className="block text-neutral-600 font-medium">
-                {FIELD_LABELS.refrigerant}
-                <span className="text-xs text-neutral-400 ml-1">（选填）</span>
-              </label>
-              <select 
-                name="refrigerant"
-                value={formData.refrigerant}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
-                disabled={loading}
-              >
-                <option value="">无特定制冷剂</option>
-                {refrigerantOptions.map((option) => (
-                  <option key={option.id || option.name} value={option.name}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* 更多筛选条件（可展开区域） */}
+            {showMoreFilters && (
+              <>
+                {/* 制冷剂（选填） */}
+                <div className="space-y-2">
+                  <label className="block text-neutral-600 font-medium">
+                    {FIELD_LABELS.refrigerant}
+                    <span className="text-xs text-neutral-400 ml-1">（选填）</span>
+                  </label>
+                  <select 
+                    name="refrigerant"
+                    value={formData.refrigerant}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
+                    disabled={loading}
+                  >
+                    <option value="">无特定制冷剂</option>
+                    {refrigerantOptions.map((option) => (
+                      <option key={option.id || option.name} value={option.name}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* 制冷类型（选填） */}
-            <div className="space-y-2">
-              <label className="block text-neutral-600 font-medium">
-                {FIELD_LABELS.refrigerant_supply_type}
-                <span className="text-xs text-neutral-400 ml-1">（选填）</span>
-              </label>
-              <select 
-                name="refrigerant_supply_type"
-                value={formData.refrigerant_supply_type}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
-                disabled={loading}
-                placeholder="请选择制冷类型"
-              >
-                <option value="">无特定制冷类型</option>
-                {refrigerantSupplyTypeOptions.map((option) => (
-                  <option key={option.id || option.name} value={option.name}>
-                    {option.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {/* 制冷类型（选填） */}
+                <div className="space-y-2">
+                  <label className="block text-neutral-600 font-medium">
+                    {FIELD_LABELS.refrigerant_supply_type}
+                    <span className="text-xs text-neutral-400 ml-1">（选填）</span>
+                  </label>
+                  <select 
+                    name="refrigerant_supply_type"
+                    value={formData.refrigerant_supply_type}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
+                    disabled={loading}
+                    placeholder="请选择制冷类型"
+                  >
+                    <option value="">无特定制冷类型</option>
+                    {refrigerantSupplyTypeOptions.map((option) => (
+                      <option key={option.id || option.name} value={option.name}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* 风扇片距（选填） */}
-            <div className="space-y-2">
-              <label className="block text-neutral-600 font-medium">
-                {FIELD_LABELS.fan_distance}
-                <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.fan_distance}，选填）</span>
-              </label>
-              <input 
-                type="number" 
-                name="fan_distance"
-                value={formData.fan_distance}
-                onChange={handleInputChange}
-                step="0.1"
-                min="0"
-                className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
-                placeholder={`请输入${FIELD_LABELS.fan_distance}`}
-                disabled={loading}
-              />
-              {fieldErrors.fan_distance && (
-                <p className="text-red-500 text-xs h-5">{fieldErrors.fan_distance}</p>
-              )}
+                {/* 产品系列（选填） */}
+                <div className="space-y-2">
+                  <label className="block text-neutral-600 font-medium">
+                    {FIELD_LABELS.series}
+                    <span className="text-xs text-neutral-400 ml-1">（选填）</span>
+                  </label>
+                  <select 
+                    name="series"
+                    value={formData.series}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
+                    disabled={loading}
+                  >
+                    <option value="">无特定产品系列</option>
+                    {seriesOptions.map((option) => (
+                      <option key={option.id || option.name} value={option.name}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 风扇片距（选填） */}
+                <div className="space-y-2">
+                  <label className="block text-neutral-600 font-medium">
+                    {FIELD_LABELS.fan_distance}
+                    <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.fan_distance}，选填）</span>
+                  </label>
+                  <input 
+                    type="number" 
+                    name="fan_distance"
+                    value={formData.fan_distance}
+                    onChange={handleInputChange}
+                    step="0.1"
+                    min="0"
+                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
+                    placeholder={`请输入${FIELD_LABELS.fan_distance}`}
+                    disabled={loading}
+                  />
+                  {fieldErrors.fan_distance && (
+                    <p className="text-red-500 text-xs h-5">{fieldErrors.fan_distance}</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* 查看更多/收起筛选条件按钮 */}
+            <div className="md:col-span-2 lg:col-span-3 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setShowMoreFilters(!showMoreFilters)}
+                className="flex items-center gap-2 text-primary hover:text-secondary font-medium transition-colors duration-300"
+              >
+                <span>{showMoreFilters ? '收起筛选条件' : '查看更多筛选条件'}</span>
+                <i className={`fa fa-chevron-${showMoreFilters ? 'up' : 'down'} transition-transform duration-300`}></i>
+              </button>
             </div>
 
             {/* 提交按钮 */}
@@ -454,9 +500,28 @@ function UserFormPage() {
                     </h3>
                     {/* 产品字段列表 */}
                     <div className="space-y-2 text-sm text-neutral-600">
+                      {/* 首先显示制冷量 */}
+                      {product.cooling_capacity !== undefined && (
+                        <div className="flex justify-between items-start gap-2">
+                          <span className="text-neutral-700 font-bold whitespace-nowrap pr-2">
+                            {FIELD_LABELS.cooling_capacity || '制冷量'}：
+                          </span>
+                          <span 
+                            className="font-bold flex-1 text-right break-words"
+                            style={{ color: 'rgb(128, 187, 255)' }}
+                          >
+                            {typeof product.cooling_capacity === 'number' 
+                              ? product.cooling_capacity.toFixed(1) 
+                              : String(product.cooling_capacity)}
+                            {FIELD_UNITS.cooling_capacity || ''}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* 显示其他字段 */}
                       {Object.keys(product).map((key) => {
-                        // 跳过id和name字段
-                        if (key === 'id' || key === 'name' || key == 'is_deleted' || key == 'comment') return null;
+                        // 跳过id、name、is_deleted、comment字段，以及已单独显示的cooling_capacity
+                        if (key === 'id' || key === 'name' || key === 'is_deleted' || key === 'comment' || key === 'cooling_capacity') return null;
                         
                         const value = product[key];
                         const label = FIELD_LABELS[key] || key;

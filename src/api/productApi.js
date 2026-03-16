@@ -18,6 +18,15 @@ const mockRefrigerantSupplyTypeOptions = [
   { id: 2, name: '直膨' },
 ];
 
+// 产品系列选项
+const mockSeriesOptions = [
+  { id: 1, name: '标准系列' },
+  { id: 2, name: '高效系列' },
+  { id: 3, name: '变频系列' },
+  { id: 4, name: '低温系列' },
+  { id: 5, name: '超低温系列' },
+];
+
 const mockProducts = [
   { 
     id: 1, 
@@ -115,6 +124,32 @@ export const getRefrigerantOptions = async () => {
 export const getRefrigerantSupplyTypeOptions = async () => {
   await new Promise(resolve => setTimeout(resolve, 500));
   return mockRefrigerantSupplyTypeOptions;
+};
+
+/**
+ * 获取产品系列选项列表
+ * API路径: /products/cooler/series (基地址已包含 /api/v1)
+ * 返回格式: { data: { series: ['标准系列', '高效系列', ...] } }
+ */
+export const getSeriesOptions = async () => {
+  try {
+    // 真实API调用
+    // 基地址: http://127.0.0.1:8000/api/v1
+    // 完整路径: http://127.0.0.1:8000/api/v1/products/cooler/series
+    const response = await apiClient.get('/products/cooler/series');
+    
+    // 处理返回数据: data.series 是字符串列表
+    // 转换为组件需要的格式: [{ id, name }, ...]
+    const seriesList = response?.data?.series || [];
+    return seriesList.map((name, index) => ({
+      id: index + 1,
+      name: name
+    }));
+  } catch (error) {
+    console.error('获取产品系列选项失败:', error);
+    // 出错时返回空数组
+    return [];
+  }
 };
 
 /**
