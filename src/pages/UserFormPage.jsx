@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getProductsByParams } from '../api/productApi';
+import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getProductsByParams, getProductPdfBlob } from '../api/productApi';
 import './UserFormPage.css';
 import logoHorizontal from '../images/logo_horizontal.png';
 // 字段显示名称映射配置
@@ -99,6 +99,9 @@ function UserFormPage() {
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showMoreFilters, setShowMoreFilters] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
 
   // 页面加载时获取选项数据
   useEffect(() => {
@@ -238,6 +241,57 @@ function UserFormPage() {
     setSubmitted(false);
     setError(null);
     setFieldErrors({});
+  };
+
+  // 打开 PDF 查看
+  const handleViewPdf = async (product) => {
+    try {
+      setLoading(true);
+      console.log('开始获取 PDF，产品 ID:', product.id);
+      
+      // 调用真实 API 获取 PDF 字节流
+      const pdfBlob = await getProductPdfBlob(product.id);
+      console.log('PDF Blob 获取成功:', pdfBlob);
+      console.log('Blob 类型:', pdfBlob.type);
+      console.log('Blob 大小:', pdfBlob.size, 'bytes');
+      
+      // API 返回的已经是 Blob，直接使用
+      const pdfObjectUrl = URL.createObjectURL(pdfBlob);
+      console.log('创建的 PDF URL:', pdfObjectUrl);
+      
+      setPdfUrl(pdfObjectUrl);
+      setSelectedProduct(product);
+      setShowPdfModal(true);
+    } catch (err) {
+      console.error('获取 PDF 链接失败:', err);
+      setError('获取 PDF 文件失败，请稍后重试');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 关闭 PDF 弹窗
+  const handleClosePdfModal = () => {
+    setShowPdfModal(false);
+    setSelectedProduct(null);
+    // 释放 Blob URL 以节省内存
+    if (pdfUrl) {
+      URL.revokeObjectURL(pdfUrl);
+    }
+    setPdfUrl('');
+  };
+
+  // 下载 PDF 文件
+  const handleDownloadPdf = () => {
+    if (pdfUrl) {
+      // 创建临时链接触发下载
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = selectedProduct?.model ? `${selectedProduct.model}.pdf` : 'product.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (
@@ -495,9 +549,19 @@ function UserFormPage() {
                     key={product.id || `product-${index}`} 
                     className="border border-neutral-200 rounded-lg p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white"
                   >
-                    <h3 className="text-lg font-semibold text-neutral-800 mb-4 pb-2 border-b border-neutral-100">
-                      {product.model || `未命名产品 ${index + 1}`}
-                    </h3>
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-neutral-100">
+                      <h3 className="text-lg font-semibold text-neutral-800">
+                        {product.model || `未命名产品 ${index + 1}`}
+                      </h3>
+                      <button
+                        onClick={() => handleViewPdf(product)}
+                        className="flex items-center gap-1 text-primary hover:text-secondary text-sm font-medium transition-colors duration-300"
+                        title="查看产品 PDF"
+                      >
+                        <i className="fa fa-file-pdf-o"></i>
+                        <span>查看 PDF</span>
+                      </button>
+                    </div>
                     {/* 产品字段列表 */}
                     <div className="space-y-2 text-sm text-neutral-600">
                       {/* 首先显示制冷量 */}
@@ -573,6 +637,55 @@ function UserFormPage() {
           </div>
         )}
       </main>
+
+      {/* PDF 查看弹窗 */}
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* 遮罩层 */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleClosePdfModal}
+          ></div>
+          
+          {/* 弹窗内容 */}
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] mx-4 flex flex-col">
+            {/* 弹窗头部 */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
+              <h3 className="text-lg font-semibold text-neutral-800">
+                {selectedProduct?.model || '产品详情'} - PDF 预览
+              </h3>
+              <button
+                onClick={handleClosePdfModal}
+                className="text-neutral-400 hover:text-neutral-600 transition-colors"
+              >
+                <i className="fa fa-times text-xl"></i>
+              </button>
+            </div>
+            
+            {/* PDF 预览区域 */}
+            <div className="flex-1 overflow-hidden bg-neutral-100 p-4">
+              {pdfUrl ? (
+                <div className="w-full h-full bg-white rounded-lg shadow-inner overflow-auto">
+                  {/* 使用 embed 标签预览 PDF，兼容性更好 */}
+                  <embed
+                    src={pdfUrl}
+                    type="application/pdf"
+                    className="w-full h-full"
+                    style={{ minHeight: '100%', minWidth: '100%' }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <i className="fa fa-spinner fa-spin text-4xl text-primary mb-4"></i>
+                    <p className="text-neutral-600">正在加载 PDF...</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 页脚 */}
       <footer className="bg-neutral-700 text-neutral-300 py-6 mt-8">

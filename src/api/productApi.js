@@ -256,3 +256,28 @@ export const deleteProduct = async (id) => {
   }
   throw new Error('产品不存在');
 };
+
+/**
+ * 获取产品 PDF 文件（返回 Blob）
+ * API 路径：/cooler/{id}/pdf (基地址已包含 /api/v1)
+ * 返回格式：Blob (PDF 字节流)
+ * @param {number} coolerId - 产品 ID
+ */
+export const getProductPdfBlob = async (coolerId) => {
+  try {
+    // 真实 API 调用 - 返回字节流
+    // 基地址：http://127.0.0.1:8000/api/v1
+    // 完整路径：http://127.0.0.1:8000/api/v1/products/cooler/{cooler_id}/pdf
+    console.log('请求 PDF，coolerId:', coolerId);
+    // coolerId = 551;
+    const response = await apiClient.get(`/products/cooler/${coolerId}/pdf`, {
+      responseType: 'blob' // 重要：指定返回类型为 blob
+    });
+    console.log('PDF 响应:', response);
+    // 注意：响应拦截器已经返回 response.data，所以直接使用 response
+    return response;
+  } catch (error) {
+    console.error('获取 PDF 文件失败:', error);
+    throw error;
+  }
+};
