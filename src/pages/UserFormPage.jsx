@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getProductsByParams, getProductPdfBlob } from '../api/productApi';
+import { useState, useEffect, useRef } from 'react';
+import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getProductsByParams } from '../api/productApi';
+import html2pdf from 'html2pdf.js';
 import './UserFormPage.css';
 import logoHorizontal from '../images/logo_horizontal.png';
 // 字段显示名称映射配置
@@ -99,9 +100,6 @@ function UserFormPage() {
   const [submitted, setSubmitted] = useState(false);
   const [fieldErrors, setFieldErrors] = useState({});
   const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [showPdfModal, setShowPdfModal] = useState(false);
-  const [pdfUrl, setPdfUrl] = useState('');
 
   // 页面加载时获取选项数据
   useEffect(() => {
@@ -243,54 +241,73 @@ function UserFormPage() {
     setFieldErrors({});
   };
 
-  // 打开 PDF 查看
-  const handleViewPdf = async (product) => {
+  // 生成并下载产品卡片的 PDF
+  const handleDownloadPdf = async (product) => {
     try {
       setLoading(true);
-      console.log('开始获取 PDF，产品 ID:', product.id);
+      console.log('开始生成 PDF，产品 ID:', product.id);
       
-      // 调用真实 API 获取 PDF 字节流
-      const pdfBlob = await getProductPdfBlob(product.id);
-      console.log('PDF Blob 获取成功:', pdfBlob);
-      console.log('Blob 类型:', pdfBlob.type);
-      console.log('Blob 大小:', pdfBlob.size, 'bytes');
+      // 创建一个临时的 div 元素用于生成 PDF
+      const element = document.createElement('div');
+      element.style.padding = '20px';
+      element.style.backgroundColor = 'white';
+      element.style.fontFamily = 'Arial, sans-serif';
       
-      // API 返回的已经是 Blob，直接使用
-      const pdfObjectUrl = URL.createObjectURL(pdfBlob);
-      console.log('创建的 PDF URL:', pdfObjectUrl);
+      // 构建 HTML 内容
+      const htmlContent = `
+        <div style="margin-bottom: 20px;">
+          <img src="${logoHorizontal}" alt="哲雪集团" style="height: 40px; object-fit: contain; display: block; margin-bottom: 15px;" />
+          <h1 style="color: #1a1a1a; font-size: 24px; margin-bottom: 10px; border-bottom: 2px solid #3b82f6; padding-bottom: 10px;">
+            ${product.model || '产品详情'}
+          </h1>
+        </div>
+        <div style="margin-top: 20px;">
+          <h2 style="color: #3b82f6; font-size: 18px; margin-bottom: 15px;">制冷量：<span style="color: #1e40af; font-weight: bold;">${typeof product.cooling_capacity === 'number' ? product.cooling_capacity.toFixed(1) : product.cooling_capacity} kW</span></h2>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+          ${Object.keys(product).map(key => {
+            if (['id', 'name', 'is_deleted', 'comment', 'cooling_capacity', 'pdf_path'].includes(key)) return '';
+            const label = FIELD_LABELS[key] || key;
+            const value = product[key];
+            const displayValue = value === null || value === undefined ? '未填写' : (typeof value === 'number' ? value.toFixed(1) : String(value));
+            const unit = FIELD_UNITS[key] || '';
+            return `
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px; font-weight: 600; color: #374151; width: 40%;">${label}</td>
+                <td style="padding: 10px; color: #6b7280;">${displayValue}${unit}</td>
+              </tr>
+            `;
+          }).join('')}
+        </table>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px; text-align: center;">
+          <p>© 2025 制冷参数查询系统 | 高端制冷解决方案</p>
+        </div>
+      `;
       
-      setPdfUrl(pdfObjectUrl);
-      setSelectedProduct(product);
-      setShowPdfModal(true);
+      element.innerHTML = htmlContent;
+      document.body.appendChild(element);
+      
+      // PDF 配置选项
+      const opt = {
+        margin: 10,
+        filename: `${product.model || 'product'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      // 生成并下载 PDF
+      await html2pdf().set(opt).from(element).save();
+      
+      // 清理临时元素
+      document.body.removeChild(element);
+      
+      console.log('PDF 生成并下载成功');
     } catch (err) {
-      console.error('获取 PDF 链接失败:', err);
-      setError('获取 PDF 文件失败，请稍后重试');
+      console.error('生成 PDF 失败:', err);
+      setError('生成 PDF 文件失败，请稍后重试');
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 关闭 PDF 弹窗
-  const handleClosePdfModal = () => {
-    setShowPdfModal(false);
-    setSelectedProduct(null);
-    // 释放 Blob URL 以节省内存
-    if (pdfUrl) {
-      URL.revokeObjectURL(pdfUrl);
-    }
-    setPdfUrl('');
-  };
-
-  // 下载 PDF 文件
-  const handleDownloadPdf = () => {
-    if (pdfUrl) {
-      // 创建临时链接触发下载
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = selectedProduct?.model ? `${selectedProduct.model}.pdf` : 'product.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
   };
 
@@ -554,12 +571,12 @@ function UserFormPage() {
                         {product.model || `未命名产品 ${index + 1}`}
                       </h3>
                       <button
-                        onClick={() => handleViewPdf(product)}
+                        onClick={() => handleDownloadPdf(product)}
                         className="flex items-center gap-1 text-primary hover:text-secondary text-sm font-medium transition-colors duration-300"
-                        title="查看产品 PDF"
+                        title="下载产品 PDF"
                       >
-                        <i className="fa fa-file-pdf-o"></i>
-                        <span>查看 PDF</span>
+                        <i className="fa fa-download"></i>
+                        <span>下载 PDF</span>
                       </button>
                     </div>
                     {/* 产品字段列表 */}
@@ -637,55 +654,6 @@ function UserFormPage() {
           </div>
         )}
       </main>
-
-      {/* PDF 查看弹窗 */}
-      {showPdfModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          {/* 遮罩层 */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={handleClosePdfModal}
-          ></div>
-          
-          {/* 弹窗内容 */}
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] mx-4 flex flex-col">
-            {/* 弹窗头部 */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200">
-              <h3 className="text-lg font-semibold text-neutral-800">
-                {selectedProduct?.model || '产品详情'} - PDF 预览
-              </h3>
-              <button
-                onClick={handleClosePdfModal}
-                className="text-neutral-400 hover:text-neutral-600 transition-colors"
-              >
-                <i className="fa fa-times text-xl"></i>
-              </button>
-            </div>
-            
-            {/* PDF 预览区域 */}
-            <div className="flex-1 overflow-hidden bg-neutral-100 p-4">
-              {pdfUrl ? (
-                <div className="w-full h-full bg-white rounded-lg shadow-inner overflow-auto">
-                  {/* 使用 embed 标签预览 PDF，兼容性更好 */}
-                  <embed
-                    src={pdfUrl}
-                    type="application/pdf"
-                    className="w-full h-full"
-                    style={{ minHeight: '100%', minWidth: '100%' }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <i className="fa fa-spinner fa-spin text-4xl text-primary mb-4"></i>
-                    <p className="text-neutral-600">正在加载 PDF...</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 页脚 */}
       <footer className="bg-neutral-700 text-neutral-300 py-6 mt-8">
