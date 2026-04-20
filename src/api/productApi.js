@@ -127,6 +127,25 @@ export const getRefrigerantSupplyTypeOptions = async () => {
 };
 
 /**
+ * 获取片距选项列表
+ * API路径: /products/cooler/fin-spacing (基地址已包含 /api/v1)
+ * 返回格式: { data: { fin_spacing: ['4', '6', '9', ...] } }
+ */
+export const getFinSpacingOptions = async () => {
+  try {
+    const response = await apiClient.get('/products/cooler/fin-spacing');
+    const spacingList = response?.data?.fin_spacing || [];
+    return spacingList.map((name, index) => ({
+      id: index + 1,
+      name: name
+    }));
+  } catch (error) {
+    console.error('获取片距选项失败:', error);
+    return [];
+  }
+};
+
+/**
  * 获取产品系列选项列表
  * API路径: /products/cooler/series (基地址已包含 /api/v1)
  * 返回格式: { data: { series: ['标准系列', '高效系列', ...] } }
@@ -163,7 +182,15 @@ export const getSeriesOptions = async () => {
  * @param {number} params.fan_distance - 风扇片距（不可为负）
  */
 export const getProductsByParams = async (params) => {
-  const response = await apiClient.post('/products/cooler/filter', params);
+  // 将前端的 fan_distance 映射为后端期望的 fin_spacing
+  const submitParams = { ...params };
+  if ('fan_distance' in submitParams) {
+    submitParams.fin_spacing = submitParams.fan_distance;
+    delete submitParams.fan_distance;
+  }
+  console.log('[API] 查询请求参数:', submitParams);
+  const response = await apiClient.post('/products/cooler/filter', submitParams);
+  console.log('[API] 查询响应结果:', response);
   return response;
 };
 

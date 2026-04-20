@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getProductsByParams } from '../api/productApi';
-import html2pdf from 'html2pdf.js';
+import { getRefrigerantOptions, getRefrigerantSupplyTypeOptions, getSeriesOptions, getFinSpacingOptions, getProductsByParams } from '../api/productApi';
 import './UserFormPage.css';
 import logoHorizontal from '../images/logo_horizontal.png';
 // 字段显示名称映射配置
@@ -73,11 +72,6 @@ const VALIDATION_RULES = {
     min: 0.1,
     message: '需求冷量请输入大于0的数值'
   },
-  fan_distance: {
-    type: 'number',
-    min: 0,
-    message: '风扇片距不能为负数'
-  }
 };
 
 function UserFormPage() {
@@ -94,6 +88,7 @@ function UserFormPage() {
   const [refrigerantOptions, setRefrigerantOptions] = useState([]);
   const [refrigerantSupplyTypeOptions, setRefrigerantSupplyTypeOptions] = useState([]);
   const [seriesOptions, setSeriesOptions] = useState([]);
+  const [finSpacingOptions, setFinSpacingOptions] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -110,14 +105,16 @@ function UserFormPage() {
   const loadOptions = async () => {
     try {
       setLoading(true);
-      const [refrigerantData, refrigerantSupplyTypeData, seriesData] = await Promise.all([
+      const [refrigerantData, refrigerantSupplyTypeData, seriesData, finSpacingData] = await Promise.all([
         getRefrigerantOptions(),
         getRefrigerantSupplyTypeOptions(),
         getSeriesOptions(),
+        getFinSpacingOptions(),
       ]);
       setRefrigerantOptions(Array.isArray(refrigerantData) ? refrigerantData : []);
       setRefrigerantSupplyTypeOptions(Array.isArray(refrigerantSupplyTypeData) ? refrigerantSupplyTypeData : []);
       setSeriesOptions(Array.isArray(seriesData) ? seriesData : []);
+      setFinSpacingOptions(Array.isArray(finSpacingData) ? finSpacingData : []);
     } catch (err) {
       setError('加载选项失败，请稍后重试');
       console.error('加载选项失败:', err);
@@ -177,9 +174,10 @@ function UserFormPage() {
     e.preventDefault();
     setError(null);
     setSubmitted(false);
-
+    console.log(182)
     // 表单验证
     if (!validateForm()) {
+      console.log("fail")
       return;
     }
 
@@ -483,20 +481,20 @@ function UserFormPage() {
                     {FIELD_LABELS.fan_distance}
                     <span className="text-xs text-neutral-400 ml-1">（{FIELD_UNITS.fan_distance}，选填）</span>
                   </label>
-                  <input 
-                    type="number" 
+                  <select 
                     name="fan_distance"
                     value={formData.fan_distance}
                     onChange={handleInputChange}
-                    step="0.1"
-                    min="0"
-                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 placeholder:text-neutral-300"
-                    placeholder={`请输入${FIELD_LABELS.fan_distance}`}
+                    className="w-full px-4 py-3 rounded-lg border border-neutral-200 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-neutral-600 bg-white"
                     disabled={loading}
-                  />
-                  {fieldErrors.fan_distance && (
-                    <p className="text-red-500 text-xs h-5">{fieldErrors.fan_distance}</p>
-                  )}
+                  >
+                    <option value="">无特定片距</option>
+                    {finSpacingOptions.map((option) => (
+                      <option key={option.id || option.name} value={option.name}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </>
             )}
